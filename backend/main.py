@@ -206,11 +206,22 @@ async def extract_text(file: UploadFile = File(...)):
 def add_tokens(req: AddTokensRequest):
     global word_to_id, id_to_word, vocab_size_simple
     added_count = 0
+    rejected_tokens = []
     for token in req.tokens:
-        if token not in word_to_id:
-            new_id = len(word_to_id)
-            word_to_id[token] = new_id
-            id_to_word[new_id] = token
-            vocab_size_simple += 1
-            added_count += 1
-    return {"status": "success", "added_count": added_count, "new_vocab_size": vocab_size_simple}
+        tt_ids = tiktoken_enc.encode(token)
+        if len(tt_ids) == 1:
+            if token not in word_to_id:
+                new_id = len(word_to_id)
+                word_to_id[token] = new_id
+                id_to_word[new_id] = token
+                vocab_size_simple += 1
+                added_count += 1
+        else:
+            rejected_tokens.append(token)
+            
+    return {
+        "status": "success", 
+        "added_count": added_count, 
+        "new_vocab_size": vocab_size_simple,
+        "rejected_tokens": rejected_tokens
+    }

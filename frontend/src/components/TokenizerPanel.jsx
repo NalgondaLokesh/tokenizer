@@ -64,6 +64,7 @@ function TokenIdPill({ token, id, isUnk, index }) {
 export default function TokenizerPanel({ result, isSimple, onTokensAdded }) {
   const [reviewing, setReviewing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [rejectedTokens, setRejectedTokens] = useState([]);
 
   const accentColor = isSimple ? '#5c8fd9' : '#9c7dce';
   const unkTokens = result ? result.tokens.filter(t => t.is_unk) : [];
@@ -72,6 +73,7 @@ export default function TokenizerPanel({ result, isSimple, onTokensAdded }) {
 
   const handleAddTokens = async () => {
     setSubmitting(true);
+    setRejectedTokens([]);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/vocab/add`, {
         method: 'POST',
@@ -79,8 +81,14 @@ export default function TokenizerPanel({ result, isSimple, onTokensAdded }) {
         body: JSON.stringify({ tokens: uniqueUnks })
       });
       if (res.ok) {
-        setReviewing(false);
-        if (onTokensAdded) onTokensAdded();
+        const data = await res.json();
+        if (data.rejected_tokens && data.rejected_tokens.length > 0) {
+          setRejectedTokens(data.rejected_tokens);
+          if (data.added_count > 0 && onTokensAdded) onTokensAdded();
+        } else {
+          setReviewing(false);
+          if (onTokensAdded) onTokensAdded();
+        }
       }
     } catch (e) {
       console.error(e);
@@ -265,6 +273,19 @@ export default function TokenizerPanel({ result, isSimple, onTokensAdded }) {
               >
                 {submitting ? 'Adding...' : 'Approve & Add Tokens'}
               </button>
+
+              {rejectedTokens.length > 0 && (
+                <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--danger)', borderRadius: '4px', color: '#ff6b6b' }}>
+                  <strong>{rejectedTokens.length} token(s) rejected:</strong> They do not exist as a single token in the TikToken vocabulary.
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                    {rejectedTokens.map(word => (
+                      <span key={word} style={{ padding: '2px 4px', background: 'rgba(0,0,0,0.3)', borderRadius: '3px', fontFamily: 'monospace' }}>
+                        {word}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
