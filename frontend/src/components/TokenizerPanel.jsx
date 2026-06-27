@@ -122,7 +122,7 @@ export default function TokenizerPanel({ result, isSimple, onTokensAdded }) {
         </div>
         <p style={{ fontSize: '12px', color: 'var(--text-secondary)', paddingLeft: '18px' }}>
           {isSimple
-            ? 'Regex-based · "The Verdict" corpus · handles unknown tokens as <UNK>'
+            ? 'Regex-based · Combined books corpus · handles unknown tokens as <UNK>'
             : 'BPE sub-word · cl100k_base (GPT-4/3.5) · never produces <UNK>'}
         </p>
       </div>

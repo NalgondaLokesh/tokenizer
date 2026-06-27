@@ -28,7 +28,7 @@ app.add_middleware(
 )
 
 # ──────────────────────────────────────────────────────────
-# Simple Tokenizer — built from The Verdict dataset
+# Simple Tokenizer — built from the combined books corpus
 # ──────────────────────────────────────────────────────────
 
 VERDICT_URL = (
@@ -51,10 +51,11 @@ def _tokenize_regex(text: str) -> list[str]:
 def _build_vocab() -> None:
     global word_to_id, id_to_word, vocab_size_simple
 
-    if not os.path.exists(VERDICT_PATH):
-        urllib.request.urlretrieve(VERDICT_URL, VERDICT_PATH)
+    if not os.path.exists(COMBINED_PATH):
+        from build_corpus import download_and_clean
+        download_and_clean()
 
-    with open(VERDICT_PATH, "r", encoding="utf-8") as f:
+    with open(COMBINED_PATH, "r", encoding="utf-8") as f:
         raw_text = f.read()
 
     all_tokens = _tokenize_regex(raw_text)
