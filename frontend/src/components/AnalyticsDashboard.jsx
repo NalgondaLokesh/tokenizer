@@ -1,50 +1,56 @@
 import { useMemo } from 'react';
 
-export default function AnalyticsDashboard({ result }) {
-  if (!result || !result.simple || !result.tiktoken) return null;
+// Calculate statistics for a given tokenizer result
+const calculateStats = (tokResult, charCount) => {
+  if (!tokResult) return null;
+  const tokens = tokResult.tokens || [];
+  const total = tokens.length;
+  if (total === 0) return { total: 0, unique: 0, avgLen: 0, top: [], compressionRatio: 0 };
 
-  const charCount = result.character_count;
+  // Unique tokens
+  const uniqueIds = new Set(tokens.map(t => t.token_id));
+  const uniqueCount = uniqueIds.size;
 
-  // Calculate statistics for a given tokenizer result
-  const calculateStats = (tokResult) => {
-    const tokens = tokResult.tokens || [];
-    const total = tokens.length;
-    if (total === 0) return { total: 0, unique: 0, avgLen: 0, top: [], compressionRatio: 0 };
+  // Average token length (in characters)
+  const totalCharLen = tokens.reduce((sum, t) => sum + (t.token?.length || 0), 0);
+  const avgLen = totalCharLen / total;
 
-    // Unique tokens
-    const uniqueIds = new Set(tokens.map(t => t.token_id));
-    const uniqueCount = uniqueIds.size;
+  // Compression ratio: characters per token
+  const compressionRatio = charCount / total;
 
-    // Average token length (in characters)
-    const totalCharLen = tokens.reduce((sum, t) => sum + (t.token?.length || 0), 0);
-    const avgLen = totalCharLen / total;
+  // Top frequent tokens
+  const frequencyMap = {};
+  tokens.forEach(t => {
+    const val = t.token;
+    frequencyMap[val] = (frequencyMap[val] || 0) + 1;
+  });
 
-    // Compression ratio: characters per token
-    const compressionRatio = charCount / total;
+  const top = Object.entries(frequencyMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([token, count]) => ({ token, count }));
 
-    // Top frequent tokens
-    const frequencyMap = {};
-    tokens.forEach(t => {
-      const val = t.token;
-      frequencyMap[val] = (frequencyMap[val] || 0) + 1;
-    });
-
-    const top = Object.entries(frequencyMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([token, count]) => ({ token, count }));
-
-    return {
-      total,
-      unique: uniqueCount,
-      avgLen,
-      compressionRatio,
-      top
-    };
+  return {
+    total,
+    unique: uniqueCount,
+    avgLen,
+    compressionRatio,
+    top
   };
+};
 
-  const simpleStats = useMemo(() => calculateStats(result.simple), [result.simple, charCount]);
-  const tiktokenStats = useMemo(() => calculateStats(result.tiktoken), [result.tiktoken, charCount]);
+export default function AnalyticsDashboard({ result }) {
+  const simpleStats = useMemo(() => {
+    if (!result) return null;
+    return calculateStats(result.simple, result.character_count);
+  }, [result]);
+
+  const tiktokenStats = useMemo(() => {
+    if (!result) return null;
+    return calculateStats(result.tiktoken, result.character_count);
+  }, [result]);
+
+  if (!result || !result.simple || !result.tiktoken || !simpleStats || !tiktokenStats) return null;
 
   // Determine which tokenizer is more efficient (higher chars per token is better)
   const isSimpleMoreEfficient = simpleStats.compressionRatio > tiktokenStats.compressionRatio;
